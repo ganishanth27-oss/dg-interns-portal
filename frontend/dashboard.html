@@ -1,0 +1,383 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DG Interns Hub | Dashboard</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: #f4f5fb;
+            color: #20243a;
+            min-height: 100vh;
+        }
+
+        header {
+            background: #fff;
+            border-bottom: 1px solid #e7e8f0;
+            padding: 18px 7%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .brand {
+            font-size: 20px;
+            font-weight: 800;
+            color: #5145bd;
+        }
+
+        .logout {
+            padding: 10px 18px;
+            border: 1px solid #dedff0;
+            border-radius: 8px;
+            background: white;
+            color: #5145bd;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        main {
+            width: min(900px, 92%);
+            margin: 40px auto;
+        }
+
+        .welcome {
+            margin-bottom: 24px;
+        }
+
+        .welcome h1 {
+            font-size: clamp(26px, 4vw, 34px);
+            margin-bottom: 8px;
+        }
+
+        .welcome p {
+            color: #777b90;
+        }
+
+        .card {
+            background: white;
+            padding: 28px;
+            margin-bottom: 22px;
+            border: 1px solid #e8e9f2;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(30, 35, 80, 0.04);
+        }
+
+        .card h2 {
+            margin-bottom: 8px;
+            font-size: 21px;
+        }
+
+        .description {
+            color: #777b90;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        .profile-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            background: #eeebff;
+            color: #5145bd;
+            display: grid;
+            place-items: center;
+            font-size: 24px;
+            font-weight: 800;
+        }
+
+        .profile-row h3 {
+            margin-bottom: 5px;
+        }
+
+        .profile-row p,
+        .account-details p {
+            color: #777b90;
+            font-size: 14px;
+            overflow-wrap: anywhere;
+        }
+
+        .account-details {
+            border-top: 1px solid #eeeef5;
+            padding-top: 18px;
+            display: grid;
+            gap: 12px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        input {
+            width: 100%;
+            padding: 13px;
+            margin-bottom: 18px;
+            border: 1px solid #dfe1eb;
+            border-radius: 9px;
+            font-size: 15px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #5145bd;
+            box-shadow: 0 0 0 3px rgba(81, 69, 189, 0.1);
+        }
+
+        .save {
+            width: 100%;
+            padding: 13px;
+            border: none;
+            border-radius: 9px;
+            background: #5145bd;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        #statusMessage {
+            margin-top: 14px;
+            font-size: 14px;
+            overflow-wrap: anywhere;
+        }
+
+        .loading {
+            color: #777b90;
+        }
+
+        @media (max-width: 600px) {
+            header {
+                padding: 16px 5%;
+            }
+
+            .brand {
+                font-size: 17px;
+            }
+
+            main {
+                margin-top: 26px;
+            }
+
+            .card {
+                padding: 21px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="brand">DG Interns Hub</div>
+        <button class="logout" id="logoutButton">Sign out</button>
+    </header>
+
+    <main>
+        <section class="welcome">
+            <h1 id="welcomeTitle">Welcome!</h1>
+            <p>Your personal internship dashboard.</p>
+        </section>
+
+        <section class="card">
+            <h2>My Profile</h2>
+            <p class="description">Your registered account information.</p>
+
+            <div class="profile-row">
+                <div class="avatar" id="avatar">U</div>
+                <div>
+                    <h3 id="profileName">Loading...</h3>
+                    <p id="profileEmail"></p>
+                </div>
+            </div>
+
+            <div class="account-details">
+                <p>Account created: <span id="createdAt">Loading...</span></p>
+                <p>Last updated: <span id="updatedAt">Loading...</span></p>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Edit Profile</h2>
+            <p class="description">Update your name and save your changes.</p>
+
+            <form id="profileForm">
+                <label for="editName">Full name</label>
+                <input
+                    type="text"
+                    id="editName"
+                    maxlength="100"
+                    placeholder="Enter your full name"
+                    required
+                >
+
+                <button class="save" type="submit" id="saveButton">
+                    Save Changes
+                </button>
+            </form>
+
+            <p id="statusMessage" role="status"></p>
+        </section>
+    </main>
+
+    <script>
+        const API_URL = "http://localhost:5000/api/auth";
+
+        const token = sessionStorage.getItem("authToken");
+
+        const welcomeTitle = document.getElementById("welcomeTitle");
+        const avatar = document.getElementById("avatar");
+        const profileName = document.getElementById("profileName");
+        const profileEmail = document.getElementById("profileEmail");
+        const createdAt = document.getElementById("createdAt");
+        const updatedAt = document.getElementById("updatedAt");
+        const editName = document.getElementById("editName");
+        const profileForm = document.getElementById("profileForm");
+        const saveButton = document.getElementById("saveButton");
+        const statusMessage = document.getElementById("statusMessage");
+
+        function showStatus(message, success = false) {
+            statusMessage.textContent = message;
+            statusMessage.style.color = success ? "#176b45" : "#a32636";
+        }
+
+        function formatDate(value) {
+            if (!value) return "Not available";
+
+            const date = new Date(value);
+
+            if (Number.isNaN(date.getTime())) {
+                return "Not available";
+            }
+
+            return date.toLocaleString();
+        }
+
+        function signOut() {
+            sessionStorage.removeItem("authToken");
+            window.location.href = "index.html";
+        }
+
+        document.getElementById("logoutButton")
+            .addEventListener("click", signOut);
+
+        async function loadDashboard() {
+            if (!token) {
+                signOut();
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/dashboard`, {
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.status === 401) {
+                    signOut();
+                    return;
+                }
+
+                if (!response.ok || !data.success) {
+                    throw new Error(
+                        data.message || "Could not load dashboard."
+                    );
+                }
+
+                const user = data.dashboard.user;
+                const account = data.dashboard.account;
+
+                welcomeTitle.textContent = `Welcome, ${user.name}!`;
+                profileName.textContent = user.name;
+                profileEmail.textContent = user.email;
+                avatar.textContent = user.name.charAt(0).toUpperCase();
+                editName.value = user.name;
+
+                createdAt.textContent = formatDate(account.createdAt);
+                updatedAt.textContent = formatDate(account.updatedAt);
+
+            } catch (error) {
+                showStatus(
+                    error.message || "Unable to load your dashboard."
+                );
+            }
+        }
+
+        profileForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const name = editName.value.trim();
+
+            if (!name) {
+                showStatus("Please enter your name.");
+                return;
+            }
+
+            saveButton.disabled = true;
+            saveButton.textContent = "Saving...";
+
+            try {
+                const response = await fetch(`${API_URL}/profile`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ name })
+                });
+
+                const data = await response.json();
+
+                if (response.status === 401) {
+                    signOut();
+                    return;
+                }
+
+                if (!response.ok || !data.success) {
+                    throw new Error(
+                        data.message || "Could not update your profile."
+                    );
+                }
+
+                await loadDashboard();
+                showStatus("Your profile was updated successfully!", true);
+
+            } catch (error) {
+                showStatus(
+                    error.message || "Unable to update your profile."
+                );
+            } finally {
+                saveButton.disabled = false;
+                saveButton.textContent = "Save Changes";
+            }
+        });
+
+        loadDashboard();
+    </script>
+</body>
+</html>

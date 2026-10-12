@@ -1,0 +1,74 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DG Interns Hub | Welcome</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="auth-container">
+        <section class="brand-panel">
+            <div class="brand">
+                <div class="brand-icon">D</div>
+                <span>DG Interns Hub</span>
+            </div>
+
+            <div class="brand-content">
+                <span class="eyebrow">YOUR CAREER STARTS HERE</span>
+                <h1>Learn. Build.<br><span>Grow together.</span></h1>
+                <p>
+                    Your central space to manage your internship profile
+                    and take the next step in your developer journey.
+                </p>
+            </div>
+
+            <div class="brand-footer">Built for the next generation of developers.</div>
+        </section>
+
+        <section class="form-panel">
+            <div class="form-wrap">
+                <div class="mobile-brand">DG Interns Hub</div>
+
+                <div class="form-heading">
+                    <h2 id="formTitle">Welcome back</h2>
+                    <p id="formSubtitle">Sign in to continue to your account.</p>
+                </div>
+
+                <div id="message" class="message" role="status"></div>
+
+                <form id="authForm">
+                    <div id="nameField" class="field hidden">
+                        <label for="name">Full name</label>
+                        <input id="name" type="text" placeholder="Enter your name"
+                               autocomplete="name">
+                    </div>
+
+                    <div class="field">
+                        <label for="email">Email address</label>
+                        <input id="email" type="email" placeholder="you@example.com"
+                               autocomplete="email" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="password">Password</label>
+                        <input id="password" type="password"
+                               placeholder="Enter your password"
+                               autocomplete="current-password" required>
+                    </div>
+
+                    <button id="submitButton" type="submit">Sign in</button>
+                </form>
+
+                <p class="switch-text">
+                    <span id="switchLabel">Don't have an account?</span>
+                    <button type="button" id="switchButton">Create account</button>
+                </p>
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
