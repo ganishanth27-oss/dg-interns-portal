@@ -97,23 +97,41 @@ const createApplication = async (req, res, next) => {
 // GET /api/applications/my
 // Get all applications for the logged-in user
 // ========================================
+
+
 const getMyApplications = async (req, res, next) => {
   try {
     const { page = 1, limit = 10 } = req.query;
 
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
-    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 10));
-    const skip = (pageNum - 1) * limitNum;
+    const limitNum = Math.min(
+      50,
+      Math.max(1, parseInt(limit, 10) || 10)
+    );
 
+    const skip = (pageNum - 1) * limitNum;
     const filter = { user: req.user.id };
 
-    const [applications, totalCount] = await Promise.all([
+    // Fetch the current page, total applications, and all status counts.
+    const [
+      applications,
+      totalCount,
+      pendingCount,
+      reviewedCount,
+      acceptedCount,
+      rejectedCount,
+    ] = await Promise.all([
       Application.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limitNum)
         .populate("job", "title company type location"),
+
       Application.countDocuments(filter),
+      Application.countDocuments({ ...filter, status: "Pending" }),
+      Application.countDocuments({ ...filter, status: "Reviewed" }),
+      Application.countDocuments({ ...filter, status: "Accepted" }),
+      Application.countDocuments({ ...filter, status: "Rejected" }),
     ]);
 
     const totalPages = Math.ceil(totalCount / limitNum);
@@ -121,6 +139,15 @@ const getMyApplications = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       count: applications.length,
+
+      stats: {
+        total: totalCount,
+        pending: pendingCount,
+        reviewed: reviewedCount,
+        accepted: acceptedCount,
+        rejected: rejectedCount,
+      },
+
       pagination: {
         currentPage: pageNum,
         totalPages,
@@ -129,6 +156,7 @@ const getMyApplications = async (req, res, next) => {
         hasNextPage: pageNum < totalPages,
         hasPrevPage: pageNum > 1,
       },
+
       applications,
     });
   } catch (error) {
