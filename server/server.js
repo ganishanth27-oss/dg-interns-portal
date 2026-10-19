@@ -1,3 +1,4 @@
+
 const dns = require("dns");
 dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
@@ -7,6 +8,7 @@ const express = require("express");
 const helmet = require("helmet");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
+const path = require("path");
 
 const connectDB = require("./config/db");
 const errorHandler = require("./middleware/errorHandler");
@@ -18,8 +20,17 @@ const applicationRoutes = require("./routes/applicationRoutes");
 
 const app = express();
 
+// Trust the hosting proxy when deployed behind one.
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
 // Security headers
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
 
 // Configure allowed frontend origins
 const allowedOrigins = (process.env.FRONTEND_URL || "")
@@ -31,8 +42,11 @@ const allowedOrigins = (process.env.FRONTEND_URL || "")
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests without an Origin header (Postman, server-to-server)
-      if (!origin || allowedOrigins.includes(origin.replace(/\/+$/, ""))) {
+      // Allow requests without an Origin header.
+      if (
+        !origin ||
+        allowedOrigins.includes(origin.replace(/\/+$/, ""))
+      ) {
         return callback(null, true);
       }
 
@@ -45,13 +59,34 @@ app.use(
 // Limit incoming JSON request size
 app.use(express.json({ limit: "10kb" }));
 
-// MongoDB Query Injection Protection (strip $ operators)
+// MongoDB Query Injection Protection
 const { sanitizeObject } = require("./utils/sanitize");
+
 app.use((req, res, next) => {
-  if (req.body) req.body = sanitizeObject(req.body);
-  if (req.params) req.params = sanitizeObject(req.params);
+  if (req.body) {
+    req.body = sanitizeObject(req.body);
+  }
+
+  if (req.params) {
+    req.params = sanitizeObject(req.params);
+  }
+
   next();
 });
+
+// Serve uploaded PDF resumes.
+// Files are stored in server/uploads/resumes.
+app.use(
+  "/uploads/resumes",
+  express.static(path.join(__dirname, "uploads", "resumes"), {
+    dotfiles: "deny",
+    index: false,
+    setHeaders: (res) => {
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.setHeader("Content-Disposition", "attachment");
+    },
+  })
+);
 
 // Global API rate limiter
 const apiLimiter = rateLimit({
@@ -68,7 +103,7 @@ const apiLimiter = rateLimit({
 // Apply rate limiter to all API routes
 app.use("/api", apiLimiter);
 
-// Routes
+// API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/jobs", jobRoutes);

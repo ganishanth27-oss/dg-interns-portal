@@ -1,10 +1,15 @@
+
 const express = require("express");
+
 const authMiddleware = require("../middleware/authMiddleware");
+const uploadMiddleware = require("../middleware/uploadMiddleware");
 const validate = require("../middleware/validate");
+
 const {
   createApplicationValidation,
   updateApplicationStatusValidation,
 } = require("../validators/applicationValidators");
+
 const {
   createApplication,
   getMyApplications,
@@ -19,7 +24,14 @@ const router = express.Router();
 router.use(authMiddleware);
 
 // POST /api/applications
-router.post("/", createApplicationValidation, validate, createApplication);
+// Upload a PDF resume before validating and creating the application
+router.post(
+  "/",
+  uploadMiddleware,
+  createApplicationValidation,
+  validate,
+  createApplication
+);
 
 // GET /api/applications/my
 router.get("/my", getMyApplications);
