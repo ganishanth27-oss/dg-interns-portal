@@ -100,6 +100,13 @@ const login = async (req, res, next) => {
       });
     }
 
+    if (user.isActive === false) {
+      return res.status(403).json({
+        success: false,
+        message: "Your account has been deactivated. Please contact an administrator.",
+      });
+    }
+
     if (!process.env.JWT_SECRET) {
       console.error("[LOGIN] JWT_SECRET is missing");
       return res.status(500).json({

@@ -26,6 +26,19 @@ const userSchema = new mongoose.Schema(
       enum: ["user", "admin", "employer"],
       default: "user",
     },
+    skills: {
+      type: [String],
+      default: [],
+    },
+    phone: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
   },
   {
     timestamps: true,

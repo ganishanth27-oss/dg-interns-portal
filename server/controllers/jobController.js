@@ -11,6 +11,8 @@ const getJobs = async (req, res, next) => {
       type,
       location,
       skill,
+      company,
+      minSalary,
       page = 1,
       limit = 10,
       sort = "newest",
@@ -18,7 +20,7 @@ const getJobs = async (req, res, next) => {
 
     const filter = { isActive: true };
 
-    // Text search across title, company, location (uses text index)
+    // Text search across title, company, location, skills
     if (search) {
       filter.$or = [
         { title: { $regex: search, $options: "i" } },
@@ -29,8 +31,13 @@ const getJobs = async (req, res, next) => {
     }
 
     // Filter by job type
-    if (type) {
+    if (type && type !== "All") {
       filter.type = type;
+    }
+
+    // Filter by company
+    if (company) {
+      filter.company = { $regex: company, $options: "i" };
     }
 
     // Filter by location (case-insensitive partial match)
@@ -43,6 +50,11 @@ const getJobs = async (req, res, next) => {
       filter.skills = { $regex: skill, $options: "i" };
     }
 
+    // Filter by minimum salary
+    if (minSalary && !isNaN(minSalary)) {
+      filter["salary.min"] = { $gte: Number(minSalary) };
+    }
+
     // Sorting
     let sortOption = {};
     switch (sort) {
@@ -51,6 +63,14 @@ const getJobs = async (req, res, next) => {
         break;
       case "deadline":
         sortOption = { deadline: 1, createdAt: -1 };
+        break;
+      case "salary-low":
+      case "salary_asc":
+        sortOption = { "salary.min": 1, createdAt: -1 };
+        break;
+      case "salary-high":
+      case "salary_desc":
+        sortOption = { "salary.max": -1, createdAt: -1 };
         break;
       case "newest":
       default:

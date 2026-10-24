@@ -210,7 +210,9 @@ const getMyApplications = async (req, res) => {
       applications,
       totalCount,
       pendingCount,
+      underReviewCount,
       shortlistedCount,
+      interviewCount,
       selectedCount,
       rejectedCount,
     ] = await Promise.all([
@@ -218,7 +220,7 @@ const getMyApplications = async (req, res) => {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limitNum)
-        .populate("job", "title company type location"),
+        .populate("job", "title company type location skills salary"),
 
       Application.countDocuments(filter),
       Application.countDocuments({
@@ -227,7 +229,15 @@ const getMyApplications = async (req, res) => {
       }),
       Application.countDocuments({
         ...filter,
-        status: { $in: ["Shortlisted", "Reviewed", "Under Review"] },
+        status: { $in: ["Reviewed", "Under Review"] },
+      }),
+      Application.countDocuments({
+        ...filter,
+        status: "Shortlisted",
+      }),
+      Application.countDocuments({
+        ...filter,
+        status: "Interview",
       }),
       Application.countDocuments({
         ...filter,
@@ -244,10 +254,12 @@ const getMyApplications = async (req, res) => {
       stats: {
         total: totalCount,
         pending: pendingCount,
+        underReview: underReviewCount,
         shortlisted: shortlistedCount,
+        interview: interviewCount,
         selected: selectedCount,
         rejected: rejectedCount,
-        reviewed: shortlistedCount,
+        reviewed: underReviewCount,
         accepted: selectedCount,
       },
       pagination: {
@@ -432,10 +444,119 @@ const deleteApplication = async (req, res) => {
   }
 };
 
+// ========================================
+// GET /api/applications/recruiter
+// Get all applicants for jobs posted by the recruiter (or all for admin)
+// ========================================
+const getRecruiterApplications = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, status, search, jobId } = req.query;
+
+    let jobFilter = {};
+    if (req.user.role === "admin") {
+      if (jobId) jobFilter._id = jobId;
+    } else {
+      jobFilter.postedBy = req.user.id;
+      if (jobId) jobFilter._id = jobId;
+    }
+
+    const recruiterJobs = await Job.find(jobFilter).select("_id title company location");
+    const jobIds = recruiterJobs.map((j) => j._id);
+
+    let appFilter = {
+      $or: [
+        { job: { $in: jobIds } },
+        ...(req.user.role === "admin" ? [] : []),
+      ],
+    };
+
+    if (req.user.role === "admin" && !jobId) {
+      appFilter = {};
+    }
+
+    if (status && status !== "All") {
+      appFilter.status = status;
+    }
+
+    if (search) {
+      const searchRegex = { $regex: search, $options: "i" };
+      appFilter.$and = [
+        appFilter.$and || {},
+        {
+          $or: [
+            { fullName: searchRegex },
+            { email: searchRegex },
+            { jobTitle: searchRegex },
+            { company: searchRegex },
+          ],
+        },
+      ];
+    }
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [applications, totalCount] = await Promise.all([
+      Application.find(appFilter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .populate("job", "title company type location skills")
+        .populate("user", "name email phone skills"),
+      Application.countDocuments(appFilter),
+    ]);
+
+    const statsFilter = req.user.role === "admin" && !jobId ? {} : { job: { $in: jobIds } };
+    const [
+      activeJobsCount,
+      totalApps,
+      shortlistedApps,
+      interviewApps,
+      selectedApps,
+      rejectedApps,
+    ] = await Promise.all([
+      Job.countDocuments(jobFilter),
+      Application.countDocuments(statsFilter),
+      Application.countDocuments({ ...statsFilter, status: "Shortlisted" }),
+      Application.countDocuments({ ...statsFilter, status: "Interview" }),
+      Application.countDocuments({ ...statsFilter, status: { $in: ["Selected", "Accepted"] } }),
+      Application.countDocuments({ ...statsFilter, status: "Rejected" }),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      count: applications.length,
+      stats: {
+        activeJobs: activeJobsCount,
+        totalApplications: totalApps,
+        shortlisted: shortlistedApps,
+        interviews: interviewApps,
+        selected: selectedApps,
+        rejected: rejectedApps,
+      },
+      pagination: {
+        currentPage: pageNum,
+        totalPages: Math.ceil(totalCount / limitNum),
+        totalCount,
+        limit: limitNum,
+      },
+      applications,
+    });
+  } catch (error) {
+    console.error("[GET RECRUITER APPLICATIONS] Error:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error fetching applicants",
+    });
+  }
+};
+
 module.exports = {
   createApplication,
   getMyApplications,
   getApplication,
   updateApplicationStatus,
   deleteApplication,
+  getRecruiterApplications,
 };

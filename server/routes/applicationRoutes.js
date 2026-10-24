@@ -16,12 +16,22 @@ const {
   getApplication,
   updateApplicationStatus,
   deleteApplication,
+  getRecruiterApplications,
 } = require("../controllers/applicationController");
+const authorize = require("../middleware/authorize");
 
 const router = express.Router();
 
 // All application routes require authentication
 router.use(authMiddleware);
+
+// GET /api/applications/recruiter
+// Recruiter or Admin can view applications submitted for their jobs
+router.get(
+  "/recruiter",
+  authorize("admin", "employer"),
+  getRecruiterApplications
+);
 
 // POST /api/applications
 // Upload a PDF resume before validating and creating the application

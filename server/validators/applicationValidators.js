@@ -146,15 +146,18 @@ const updateApplicationStatusValidation = [
     .withMessage("Status is required")
     .bail()
     .isIn([
+      "Applied",
       "Pending",
+      "Under Review",
       "Reviewed",
       "Shortlisted",
+      "Interview",
       "Accepted",
       "Selected",
       "Rejected",
     ])
     .withMessage(
-      "Status must be Pending, Reviewed, Shortlisted, Accepted, Selected, or Rejected"
+      "Status must be Applied, Pending, Under Review, Reviewed, Shortlisted, Interview, Accepted, Selected, or Rejected"
     ),
 ];
 

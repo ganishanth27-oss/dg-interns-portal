@@ -10,12 +10,21 @@ const {
   updateProfile,
   deleteProfile,
   changePassword,
+  getAllUsers,
+  toggleUserStatus,
+  getAdminStats,
 } = require("../controllers/userController");
+const authorize = require("../middleware/authorize");
 
 const router = express.Router();
 
 // All user routes require authentication
 router.use(authMiddleware);
+
+// Admin-only endpoints
+router.get("/", authorize("admin"), getAllUsers);
+router.get("/stats/overview", authorize("admin"), getAdminStats);
+router.patch("/:id/status", authorize("admin"), toggleUserStatus);
 
 // GET /api/users/profile
 router.get("/profile", getProfile);
