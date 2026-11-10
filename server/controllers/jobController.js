@@ -16,9 +16,13 @@ const getJobs = async (req, res, next) => {
       page = 1,
       limit = 10,
       sort = "newest",
+      includeInactive,
     } = req.query;
 
-    const filter = { isActive: true };
+    const filter = {};
+    if (includeInactive !== "true") {
+      filter.isActive = true;
+    }
 
     // Text search across title, company, location, skills
     if (search) {

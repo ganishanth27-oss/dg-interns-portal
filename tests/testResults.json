@@ -1,0 +1,162 @@
+[
+  {
+    "id": "TC-01",
+    "name": "Valid User Registration",
+    "expected": "User account created with hashed password & candidate role",
+    "actual": "User created with ID 6af2893c4486417b460a63c4",
+    "status": "PASSED",
+    "error": null
+  },
+  {
+    "id": "TC-02",
+    "name": "Duplicate Email Registration",
+    "expected": "Database rejects duplicate email with E11000",
+    "actual": "Duplicate email blocked by unique index",
+    "status": "PASSED",
+    "error": null
+  },
+  {
+    "id": "TC-03",
+    "name": "Invalid Email Validation",
+    "expected": "Validation flags malformed email as invalid",
+    "actual": "Malformed email rejected by validator",
+    "status": "PASSED",
+    "error": null
+  },
+  {
+    "id": "TC-04",
+    "name": "Valid Login Authentication",
+    "expected": "Password matches bcrypt hash and valid JWT is signed",
+    "actual": "Password verified and JWT token generated",
+    "status": "PASSED",
+    "error": null
+  },
+  {
+    "id": "TC-05",
+    "name": "Invalid Password Rejection",
+    "expected": "Bcrypt returns false for incorrect password",
+    "actual": "Incorrect password rejected safely",
+    "status": "PASSED",
+    "error": null
+  },
+  {
+    "id": "TC-06",
+    "name": "Logout & Session Cleanup",
+    "expected": "Session storage clears authentication token and authUser",
+    "actual": "Auth token removed from active session state",
+    "status": "PASSED",
+    "error": null
+  },
+  {
+    "id": "TC-07",
+    "name": "Protected Route Access Control",
+    "expected": "Requests missing Bearer header receive 401 Unauthorized",
+    "actual": "Unauthenticated requests blocked by authMiddleware",
+    "status": "PASSED",
+    "error": null
+  },
+  {
+    "id": "TC-08",
+    "name": "Invalid JWT Verification",
+    "expected": "Forged token triggers JsonWebTokenError / invalid signature",
+    "actual": "Tampered JWT safely rejected",
+    "status": "PASSED",
+    "error": null
+  },
+  {
+    "id": "TC-09",
+    "name": "Candidate Role Restrictions",
+    "expected": "Candidates restricted from posting jobs (403 Forbidden)",
+    "actual": "Candidate role blocked from recruiter endpoints",
+    "status": "PASSED",
+    "error": null
+  },
+  {
+    "id": "TC-10",
+    "name": "Recruiter Role Authorization",
+    "expected": "Recruiter role granted access to job management routes",
+    "actual": "Recruiter authenticated and authorized",
+    "status": "PASSED",
+    "error": null
+  },
+  {
+    "id": "TC-11",
+    "name": "Admin Role Authorization",
+    "expected": "Admin access granted to /api/admin/* endpoints",
+    "actual": "Admin permissions active across all governance routes",
+    "status": "PASSED",
+    "error": null
+  },
+  {
+    "id": "TC-12",
+    "name": "Job Creation by Recruiter",
+    "expected": "Job stored in database linked to recruiter ID",
+    "actual": "Job created with ID 6af2893e4486417b460a63c8",
+    "status": "PASSED",
+    "error": null
+  },
+  {
+    "id": "TC-13",
+    "name": "Job Editing & Modification",
+    "expected": "Job details updated successfully in database",
+    "actual": "Title updated to \"Senior Full-Stack Intern (MERN)\"",
+    "status": "PASSED",
+    "error": null
+  },
+  {
+    "id": "TC-14",
+    "name": "Job Deletion Lifecycle",
+    "expected": "Job document deleted permanently from MongoDB",
+    "actual": "Job removed and null returned on findById",
+    "status": "PASSED",
+    "error": null
+  },
+  {
+    "id": "TC-15",
+    "name": "Job Text Search Execution",
+    "expected": "Search query matches job titles/descriptions via MongoDB query",
+    "actual": "Found 2 matching job postings",
+    "status": "PASSED",
+    "error": null
+  },
+  {
+    "id": "TC-16",
+    "name": "Multi-Criteria Job Filtering",
+    "expected": "Filters query by type=Internship & location=Bengaluru",
+    "actual": "Filtered query returned 1 matching jobs",
+    "status": "PASSED",
+    "error": null
+  },
+  {
+    "id": "TC-17",
+    "name": "Job Application Submission",
+    "expected": "Application recorded and confirmation notification dispatched",
+    "actual": "Application 6af2893f4486417b460a63ca created with notification",
+    "status": "PASSED",
+    "error": null
+  },
+  {
+    "id": "TC-18",
+    "name": "Duplicate Application Prevention",
+    "expected": "Duplicate application detected and rejected with HTTP 409",
+    "actual": "Duplicate application rejected safely by existing check",
+    "status": "PASSED",
+    "error": null
+  },
+  {
+    "id": "TC-19",
+    "name": "Application Status Update Lifecycle",
+    "expected": "Status updated to Shortlisted and candidate notified",
+    "actual": "Application status modified and status notification persisted",
+    "status": "PASSED",
+    "error": null
+  },
+  {
+    "id": "TC-20",
+    "name": "Resume Upload Security Validation",
+    "expected": "Multer accepts valid PDFs and rejects non-PDFs & files > 5MB",
+    "actual": "MIME, extension, and file size restrictions verified",
+    "status": "PASSED",
+    "error": null
+  }
+]

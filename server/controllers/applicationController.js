@@ -1,6 +1,7 @@
 
 const Application = require("../models/Application");
 const Job = require("../models/Job");
+const Notification = require("../models/Notification");
 const fs = require("fs/promises");
 
 // Remove an uploaded resume if application creation fails.
@@ -159,6 +160,34 @@ const createApplication = async (req, res) => {
     });
 
     applicationCreated = true;
+
+    // Trigger Notification for Candidate (Confirmation)
+    try {
+      await Notification.create({
+        recipient: req.user.id,
+        message: `Your application for "${application.jobTitle}" at ${application.company} has been received.`,
+        type: "APPLICATION_SUBMITTED",
+        job: application.job || null,
+        application: application._id,
+      });
+
+      // If applied to a registered job, notify the job poster (Recruiter)
+      if (job) {
+        const jobDoc = await Job.findById(job);
+        if (jobDoc && jobDoc.postedBy) {
+          await Notification.create({
+            recipient: jobDoc.postedBy,
+            sender: req.user.id,
+            message: `New applicant (${fullName.trim()}) applied for "${jobDoc.title}".`,
+            type: "NEW_APPLICANT",
+            job: jobDoc._id,
+            application: application._id,
+          });
+        }
+      }
+    } catch (notifErr) {
+      console.error("[NOTIFY] Application notification error:", notifErr.message);
+    }
 
     if (process.env.NODE_ENV !== "production") {
       console.log("[CREATE APPLICATION] Application saved:", {
@@ -368,6 +397,21 @@ const updateApplicationStatus = async (req, res) => {
     application.status = status;
     await application.save();
 
+    // Trigger Notification for Candidate (Status Update)
+    try {
+      await Notification.create({
+        recipient: application.user,
+        sender: req.user.id,
+        message: `Your application status for "${application.jobTitle}" at ${application.company} was updated to "${status}".`,
+        type: "STATUS_UPDATED",
+        job: application.job || null,
+        application: application._id,
+        data: { newStatus: status },
+      });
+    } catch (notifErr) {
+      console.error("[NOTIFY] Status update notification error:", notifErr.message);
+    }
+
     return res.status(200).json({
       success: true,
       message: "Application status updated successfully",
@@ -463,15 +507,11 @@ const getRecruiterApplications = async (req, res) => {
     const recruiterJobs = await Job.find(jobFilter).select("_id title company location");
     const jobIds = recruiterJobs.map((j) => j._id);
 
-    let appFilter = {
-      $or: [
-        { job: { $in: jobIds } },
-        ...(req.user.role === "admin" ? [] : []),
-      ],
-    };
-
-    if (req.user.role === "admin" && !jobId) {
-      appFilter = {};
+    let appFilter = {};
+    if (req.user.role !== "admin") {
+      appFilter.job = { $in: jobIds };
+    } else if (jobId) {
+      appFilter.job = jobId;
     }
 
     if (status && status !== "All") {
@@ -480,16 +520,11 @@ const getRecruiterApplications = async (req, res) => {
 
     if (search) {
       const searchRegex = { $regex: search, $options: "i" };
-      appFilter.$and = [
-        appFilter.$and || {},
-        {
-          $or: [
-            { fullName: searchRegex },
-            { email: searchRegex },
-            { jobTitle: searchRegex },
-            { company: searchRegex },
-          ],
-        },
+      appFilter.$or = [
+        { fullName: searchRegex },
+        { email: searchRegex },
+        { jobTitle: searchRegex },
+        { company: searchRegex },
       ];
     }
 

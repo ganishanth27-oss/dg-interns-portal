@@ -17,6 +17,8 @@ const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const jobRoutes = require("./routes/jobRoutes");
 const applicationRoutes = require("./routes/applicationRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
 const app = express();
 
@@ -108,12 +110,27 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/applications", applicationRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/admin", adminRoutes);
 
-// Backend home route
+// Backend home / health check route
 app.get("/", (req, res) => {
   res.json({
     success: true,
     message: "DG Interns Hub Backend is Working!",
+    version: "1.0.0",
+    environment: process.env.NODE_ENV || "development",
+  });
+});
+
+// Explicit health check endpoint for Render and uptime monitors
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    success: true,
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+    service: "DG Interns Hub API",
+    database: "MongoDB Atlas",
   });
 });
 

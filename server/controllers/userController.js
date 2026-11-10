@@ -300,6 +300,49 @@ const toggleUserStatus = async (req, res) => {
   }
 };
 
+// DELETE /api/users/:id
+// Admin: Delete user account (and their applications / jobs if applicable)
+const deleteUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (id === req.user.id) {
+      return res.status(400).json({
+        success: false,
+        message: "You cannot delete your own admin account",
+      });
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const Job = require("../models/Job");
+
+    // Clean up user's applications and jobs
+    await Promise.all([
+      Application.deleteMany({ user: id }),
+      Job.deleteMany({ postedBy: id }),
+      User.findByIdAndDelete(id),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      message: `User ${user.name} (${user.email}) deleted successfully`,
+    });
+  } catch (error) {
+    console.error("[DELETE USER BY ID] Error:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Server error deleting user",
+    });
+  }
+};
+
 // GET /api/users/stats/overview
 // Admin: Overview stats (users, candidates, recruiters, jobs, applications)
 const getAdminStats = async (req, res) => {
@@ -313,6 +356,7 @@ const getAdminStats = async (req, res) => {
       totalJobs,
       activeJobs,
       totalApplications,
+      pendingApplications,
       shortlistedApplications,
       interviewApplications,
       selectedApplications,
@@ -325,10 +369,50 @@ const getAdminStats = async (req, res) => {
       Job.countDocuments(),
       Job.countDocuments({ isActive: true }),
       Application.countDocuments(),
+      Application.countDocuments({ status: { $in: ["Applied", "Pending", "Under Review"] } }),
       Application.countDocuments({ status: "Shortlisted" }),
       Application.countDocuments({ status: "Interview" }),
       Application.countDocuments({ status: { $in: ["Selected", "Accepted"] } }),
       Application.countDocuments({ status: "Rejected" }),
+    ]);
+
+    // Monthly activity analytics (last 6 months)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+    sixMonthsAgo.setDate(1);
+    sixMonthsAgo.setHours(0, 0, 0, 0);
+
+    const [monthlyUsers, monthlyJobs, monthlyApps] = await Promise.all([
+      User.aggregate([
+        { $match: { createdAt: { $gte: sixMonthsAgo } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]),
+      Job.aggregate([
+        { $match: { createdAt: { $gte: sixMonthsAgo } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]),
+      Application.aggregate([
+        { $match: { createdAt: { $gte: sixMonthsAgo } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]),
     ]);
 
     return res.status(200).json({
@@ -341,10 +425,16 @@ const getAdminStats = async (req, res) => {
         totalJobs,
         activeJobs,
         totalApplications,
+        pendingApplications,
         shortlistedApplications,
         interviewApplications,
         selectedApplications,
         rejectedApplications,
+        analytics: {
+          monthlyUsers,
+          monthlyJobs,
+          monthlyApps,
+        },
       },
     });
   } catch (error) {
@@ -363,5 +453,6 @@ module.exports = {
   changePassword,
   getAllUsers,
   toggleUserStatus,
+  deleteUserById,
   getAdminStats,
 };

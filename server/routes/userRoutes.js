@@ -12,6 +12,7 @@ const {
   changePassword,
   getAllUsers,
   toggleUserStatus,
+  deleteUserById,
   getAdminStats,
 } = require("../controllers/userController");
 const authorize = require("../middleware/authorize");
@@ -25,6 +26,7 @@ router.use(authMiddleware);
 router.get("/", authorize("admin"), getAllUsers);
 router.get("/stats/overview", authorize("admin"), getAdminStats);
 router.patch("/:id/status", authorize("admin"), toggleUserStatus);
+router.delete("/:id", authorize("admin"), deleteUserById);
 
 // GET /api/users/profile
 router.get("/profile", getProfile);

@@ -28,9 +28,16 @@ const register = async (req, res, next) => {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Only allow 'user' or 'employer' roles during registration
-    const allowedRoles = ["user", "employer"];
-    const userRole = allowedRoles.includes(role) ? role : "user";
+    // Normalize 'candidate' <-> 'user' and 'recruiter' <-> 'employer'
+    let userRole = "candidate";
+    if (role === "employer" || role === "recruiter") {
+      userRole = "recruiter";
+    } else if (role === "admin") {
+      // Don't allow direct admin registration through public register
+      userRole = "candidate";
+    } else {
+      userRole = "candidate";
+    }
 
     const user = await User.create({
       name,
